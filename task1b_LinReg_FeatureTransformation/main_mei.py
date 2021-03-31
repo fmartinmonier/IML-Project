@@ -1,77 +1,56 @@
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import RepeatedKFold
 from numpy import average, absolute
 import numpy as np
 import pandas as pd  
-import math
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import RepeatedKFold
+from matplotlib import pyplot as plt
 
 #load dataset
 train = pd.read_csv("train.csv" )
-#ID, y, x1, x2, x3, x4, x5
 
 y = train['y']
-X = train[['x1', 'x2', 'x3', 'x4', 'x5']]
-X_Quadratic = train[['x1', 'x2', 'x3', 'x4', 'x5']]
-X_Exponential = train[['x1', 'x2', 'x3', 'x4', 'x5']]
-X_Cosine = train[['x1', 'x2', 'x3', 'x4', 'x5']]
-X_Constant = np.ones((700,1))
+#normalize_y = y / np.linalg.norm(y)
+X = train [['x1', 'x2', 'x3', 'x4', 'x5']]
+size=y.size
+print(type(X))
+X = X.to_numpy()
 
-for idx, row in X.iterrows():
-    X_Quadratic.loc[idx, 'x1'] = row['x1'] * row['x1']
-    X_Exponential.loc[idx, 'x1'] = math.exp( row['x1'] )
-    X_Cosine.loc[idx, 'x1'] = math.cos( row['x1'] )
+square = np.power(X, 2)
+exponential = np.exp(X)
+cos = np.cos(X)
 
-    X_Quadratic.loc[idx, 'x2'] = row['x2'] * row['x2']
-    X_Exponential.loc[idx, 'x2'] = math.exp( row['x2'] )
-    X_Cosine.loc[idx, 'x2'] = math.cos( row['x2'] )
+finale = np.concatenate((X, square, exponential, cos, np.ones((X.shape[0],1))), axis = 1)
+print(np.shape(finale))
+#normalize1 = finale / np.linalg.norm(finale)
+#df = pd.DataFrame(normalize1)
+df = pd.DataFrame(finale)
 
-    X_Quadratic.loc[idx, 'x3'] = row['x3'] * row['x3']
-    X_Exponential.loc[idx, 'x3'] = math.exp( row['x3'] )
-    X_Cosine.loc[idx, 'x3'] = math.cos( row['x3'] )
+model = Ridge(alpha=0.025)
+#lm = LinearRegression()
+cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+y_pred = cross_validate(model, df, y, cv=cv, return_estimator=True)
+model.fit(finale,y)
+predictions = model.predict(finale)
 
-    X_Quadratic.loc[idx, 'x4'] = row['x4'] * row['x4']
-    X_Exponential.loc[idx, 'x4'] = math.exp( row['x4'] )
-    X_Cosine.loc[idx, 'x4'] = math.cos( row['x4'] )
-
-    X_Quadratic.loc[idx, 'x5'] = row['x5'] * row['x5']
-    X_Exponential.loc[idx, 'x5'] = math.exp( row['x5'] )
-    X_Cosine.loc[idx, 'x5'] = math.cos( row['x5'] )
-
-arr = np.column_stack((X, X_Quadratic, X_Exponential, X_Cosine, X_Constant)) 
-
-arr_final = np.zeros((700, 21))
+counter = 0
+newmodel_coef_ = np.zeros((finale.shape[1],1))
+for model in y_pred['estimator']:
+    newmodel_coef_ = newmodel_coef_ + model.coef_
     
-#load weights
-weights = np.ones((21, 1))
-for i in range(0, 5):
-    weights[i] = 0.01
+print(newmodel_coef_.shape)
+weights = np.mean(newmodel_coef_, axis = 0)
 
-for i in range(5, 10):
-    weights[i] = 0.001    
+#weights = model.coef_
+#weights = np.transpose(weights)
+weights = np.transpose(weights)
+print(weights)
 
-for i in range(10, 15):
-    weights[i] = 0.00001
-
-for i in range(15, 20):
-    weights[i] = 0.000001
-
-weights[20] = 0.0000001            
-
-for idx, row in enumerate(arr):
-    for i in range(0, 21):
-        arr_final[idx, i] = row[i] * weights[i]
-
-#print(arr_final)        
-
-scores_f = []
-model = LinearRegression()
-model.fit(arr_final,y)
-#cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
-scores = cross_val_score(model, arr_final, y, cv=10, scoring='neg_root_mean_squared_error') #cross validation for 10fold with RMSE
-scores_f.append(absolute(average(scores)))
-
-print(scores_f)
+plt.figure(figsize=(12, 6))
+plt.plot(predictions, 'r+')
+plt.plot(y, 'bo')
+plt.show()
 
 DF = pd.DataFrame(weights)
-DF.to_csv("sample.csv", index=False, header=False)
+DF.to_csv("sumbission.csv", index=False, header=False)
