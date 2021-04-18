@@ -96,4 +96,6 @@ for i in range(np.size(pid_list,0)):
         result_final = np.concatenate((result_final, result), axis=0)
 
 result_final = np.concatenate((pid_list_test, result_final), axis=1)
+DF = pd.DataFrame(result_final)
+DF.to_csv("sumbission.csv", index=False, header=False)
 #task3 regression missing 
