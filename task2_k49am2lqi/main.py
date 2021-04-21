@@ -39,33 +39,48 @@ time = pd.DataFrame(time,columns=['Time'])
 time_repeated = pd.concat([time]*np.size(pid_list,0), ignore_index=True)
 train_features['Time'] = time_repeated['Time']
 
-
-#TRAINING
-
-#Task 1 --> For-loop commented out due to long execution time
-
 #Merging both training and testin datasets on the patient id number
 all_training_data = pd.merge_ordered(train_features, train_labels, on='pid')
 
+############################################################################
+#TRAINING
+
+######################################
+#Task 1 --> For-loop commented out due to long execution time
 svclassifier_task1_ = {}
+k = 0 #integer increment at each iterator of the for loop to iterate on the "tests" list
 
-#for label in TESTS:
-    #k = 0
-    #test_type = tests[k]
-    #print('Current test type being trained:', test_type)
-    #X_train = all_training_data.pivot_table(index="pid", columns="Time", values=test_type).to_numpy()
-    #y_train = all_training_data.pivot_table(index="pid", values=label).to_numpy()
-    #svclassifier_task1_[str(label)] = svclassifier_task1.fit(X_train, y_train.ravel())
+for label in TESTS:
+    test_type = tests[k]
+    print('Current test type being trained:', test_type)
+    X_train_task1 = all_training_data.pivot_table(index="pid", columns="Time", values=test_type).to_numpy()
+    y_train_task1 = all_training_data.pivot_table(index="pid", values=label).to_numpy()
+    svclassifier_task1_[str(test_type)] = svclassifier_task1.fit(X_train_task1, y_train_task1.ravel())
+    k += 1
 
-
+######################################
 #Task 2
 label = ['LABEL_Sepsis']
 X_train_task2 = all_training_data.pivot_table(index="pid", columns="Time").to_numpy()
 y_train_task2 = all_training_data.pivot_table(index="pid", values=label).to_numpy()
 svclassifier_task2_sepsis = svclassifier_task2.fit(X_train_task2, y_train_task2.ravel())
 
-#Task 3 --> To do
+######################################
+#Task 3 
+svregression_task3_ = {}
+k = 0 #integer increment at each iterator of the for loop to iterate on the "vitals" list
 
+for label in VITALS:
+    vital_type = vitals[k]
+    print('Current vital being trained:', vital_type)
+    X_train_task3 = all_training_data.pivot_table(index="pid", columns="Time", values=vital_type)
+    print('X_train', X_train_task3)
+    y_train_task3 = all_training_data.pivot_table(index="pid", values=label)
+    print('y_train', y_train_task3)
+    svregression_task3_[str(vital_type)] = svregression_task3.fit(X_train_task3,y_train_task3.ravel())
+    k += 1
+
+############################################################################
 #TESTING --> To do. The following code is the old version, using numpy instead on pandas for the data manipulation.
 
 pid_attribute_t1 = []
