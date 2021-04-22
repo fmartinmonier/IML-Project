@@ -3,15 +3,6 @@ from sklearn.svm import SVC, SVR
 import numpy as np
 from sklearn.impute import KNNImputer, SimpleImputer
 
-imputer = KNNImputer(n_neighbors=2, weights="uniform")
-imputer1 = KNNImputer(n_neighbors=2, weights="uniform")
-
-#Defining classification and regression models for tasks 1,2 and 3
-#svclassifier_task1 = SVC(kernel='rbf', class_weight={1: 10}) 
-#svclassifier_task2 = SVC(kernel='sigmoid', probability=True)
-#svregression_task3 = SVR(kernel='sigmoid')
-
-
 vitals = ['RRate', 'ABPm', 'SpO2', 'Heartrate']
 VITALS = ['LABEL_RRate', 'LABEL_ABPm', 'LABEL_SpO2', 'LABEL_Heartrate']
 
@@ -76,10 +67,6 @@ test_features_imp.to_csv('test_features_imp.csv', index=False, float_format='%.3
 train_features = pd.read_csv('train_features_imp.csv', delimiter=',')
 test_features = pd.read_csv('test_features_imp.csv', delimiter=',')
 '''
-
-#Replacing NaN values with means of their respective columns (mean computed over all patient data)
-#train_features = train_features.fillna(train_features.mean())
-#test_features = test_features.fillna(test_features.mean())
 
 pid = train_features['pid']
 pid_list=pid.unique() #applying .unique() takes unique value repeated + transform in ndarray
