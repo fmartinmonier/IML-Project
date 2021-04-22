@@ -40,14 +40,14 @@ def imp(df_in):
         nonempty_columns =  []
         temp = pd.DataFrame(columns = features)
         
-        for col in features:
+        for columns in features:
             # all the values for this feature are null
-            if sum(patient[col].isnull()) != patient.shape[0]:
-                nonempty_columns.append(col)
+            if sum(patient[columns.isnull()) != patient.shape[0]:
+                nonempty_columns.append(columns)
         
-        b = imp_mean.fit_transform(patient)
-        b = pd.DataFrame(data=b, columns = nonempty_columns)
-        temp = temp.merge(b, how='outer')
+        imp_mean_patient = imp_mean.fit_transform(patient)
+        imp_mean_patient = pd.DataFrame(data=b, columns = nonempty_columns)
+        temp = temp.merge(imp_mean_patient, how='outer')
         temp = temp[features]
         
         c = temp.to_numpy(copy=False, na_value=np.nan)
@@ -168,4 +168,5 @@ for vital_label in VITALS:
 
 final_result = np.concatenate((np.expand_dims(head, axis=0), result_t3), axis=0)
 DF = pd.DataFrame(final_result)
-DF.to_csv("submission.zip", index=False, header=False, float_format='%.3f', compression='zip')
+compression_opts = dict(method='zip', archive_name='predictions.csv')
+DF.to_csv('prediction.zip', index=False, header=False, float_format='%.3f', compression=compression_opts)
