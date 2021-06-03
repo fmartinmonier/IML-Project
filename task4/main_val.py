@@ -1,4 +1,3 @@
-"""This code is inspired from https://github.com/seanbenhur/siamese_net and https://github.com/adambielski/siamese-triplet """
 
 import os
 import torch
@@ -16,25 +15,10 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.models import resnet34
 
-class TripletLoss(nn.Module):
-    """
-    Triplet loss
-    Takes embeddings of an anchor sample, a positive sample and a negative sample
-    """
-
-    def __init__(self, margin):
-        super(TripletLoss, self).__init__()
-        self.margin = margin
-
-    def forward(self, anchor, positive, negative, size_average=True):
-        distance_positive = (anchor - positive).pow(2).sum(1)  # .pow(.5)
-        distance_negative = (anchor - negative).pow(2).sum(1)  # .pow(.5)
-        losses = F.relu(distance_positive - distance_negative + self.margin)
-        return losses.mean() if size_average else losses.sum()
 
 #Criterion definintion using contrastive loss defined just above
 def criterion(anchor, positive, negative):
-    loss = nn.TripletMarginLoss(margin=0.7)
+    loss = nn.TripletMarginLoss(margin=0.8)
 
     return loss(anchor, positive, negative)
 
@@ -44,21 +28,21 @@ def get_loader(mode, batch_size, shuffle=True, num_workers=2):
     data_transforms = {
         'train': transforms.Compose([
             transforms.RandomResizedCrop(300),
-        #    transforms.RandomHorizontalFlip(),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-        #    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
             transforms.Resize(300),
-        #    transforms.CenterCrop(280),
+            transforms.CenterCrop(280),
             transforms.ToTensor(),
-        #    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'test': transforms.Compose([
             transforms.Resize(300),
-        #    transforms.CenterCrop(280),
+            transforms.CenterCrop(280),
             transforms.ToTensor(),
-        #    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     }
     train_frame = '/scratch-second/vibars/task4_be9ai3nsdj/train_triplets.txt'
@@ -69,8 +53,8 @@ def get_loader(mode, batch_size, shuffle=True, num_workers=2):
         L = len(dataset)
         L1 = int(0.7*L)
         L2 = L - L1
-        print('-'*70)
-        print('Length of training set: {}, Length of validation set: {}'.format(L1, L2))
+        #print('-'*70)
+        #print('Length of training set: {}, Length of validation set: {}'.format(L1, L2))
         trainset, validset = random_split(dataset, lengths=[L1, L2])
         data_loader_train = DataLoader(dataset=trainset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
         data_loader_val = DataLoader(dataset=validset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
@@ -80,8 +64,8 @@ def get_loader(mode, batch_size, shuffle=True, num_workers=2):
     elif mode == 'test':
         testset = Preprocessing(test_frame, mode='test', transform=data_transforms['test'])
         L3 = len(testset)
-        print('-' * 70)
-        print('Length of test set: {}'.format(L3))
+        #print('-' * 70)
+        #print('Length of test set: {}'.format(L3))
         data_loader_test = DataLoader(dataset=testset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
         return data_loader_test
@@ -118,30 +102,6 @@ class Preprocessing(Dataset):
         return anchor, first, second
 #########################################################################################
 
-class EmbeddingNet(nn.Module):
-    def __init__(self):
-        super(EmbeddingNet, self).__init__()
-        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 5), nn.PReLU(),
-                                     nn.MaxPool2d(2, stride=2),
-                                     nn.Conv2d(32, 64, 5), nn.PReLU(),
-                                     nn.MaxPool2d(2, stride=2))
-
-        self.fc = nn.Sequential(nn.Linear(64 * 4 * 4, 256),
-                                nn.PReLU(),
-                                nn.Linear(256, 256),
-                                nn.PReLU(),
-                                nn.Linear(256, 2)
-                                )
-
-    def forward(self, x):
-        output = self.convnet(x)
-        output = output.view(output.size()[0], -1)
-        output = self.fc(output)
-        return output
-
-    def get_embedding(self, x):
-        return self.forward(x)
-
 
 class Siamese_net(nn.Module):
     def __init__(self):
@@ -149,7 +109,7 @@ class Siamese_net(nn.Module):
         self.convnet = resnet34(pretrained=True, progress=True)
         num_features = self.convnet.fc.in_features
         #print('XXXXXX', num_features)
-        dimension_embedding = 2
+        dimension_embedding = 8
         self.convnet.fc = nn.Sequential(nn.Linear(num_features, 10),
                                 nn.PReLU(),
                                 nn.Linear(10, dimension_embedding))
@@ -268,7 +228,7 @@ def val_epoch(val_loader, model, loss_fn, device, metrics):
 
 
 
-def Prediction_epoch(test_loader, model, device):
+def Prediction(test_loader, model, device):
     predictions = []
     with torch.no_grad():
         model.eval()
@@ -310,7 +270,7 @@ if __name__ == '__main__':
     queue_train, queue_val = get_loader(mode='trainval', batch_size=20, shuffle=True, num_workers=2)
     queue_test = get_loader(mode='test', batch_size=20, shuffle=False, num_workers=2)
 
-    n_epochs = 5
+    n_epochs = 10
     log_interval = 100
     metrics=[]
 
@@ -334,6 +294,6 @@ if __name__ == '__main__':
 
 
 
-    output = Prediction_epoch(queue_test, model, device)
+    output = Prediction(queue_test, model, device)
     predictions = pd.DataFrame(output)
-    predictions.to_csv('submission.txt', index=False, header=False)
+    predictions.to_csv('submission_last.txt', index=False, header=False)
